@@ -9,6 +9,9 @@ fake-useragent
 progressbar2
 csvkit
 flask
+flask_pymongo
+flask_cors
 Flask-Caching
 flask-compress
 networkx
+elasticsearch

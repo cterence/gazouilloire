@@ -41,6 +41,7 @@ def init_args():
       'selected': "checked" if SELECTED_FIELD else None
     }
 
+
 @app.route("/")
 @cache.cached(timeout=3600)
 def home():

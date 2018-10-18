@@ -18,6 +18,8 @@ try:
     from pymongo import MongoClient
 except:
     from pymongo import Connection as MongoClient
+from elasticsearch import Elasticsearch
+from elasticsearch import helpers
 from twitter import Twitter, TwitterStream, OAuth, OAuth2, TwitterHTTPError
 from tweets import prepare_tweet, prepare_tweets, get_timestamp
 from pytz import timezone, all_timezones
@@ -34,30 +36,42 @@ def breakable_sleep(delay, exit_event):
     while time.time() < t and not exit_event.is_set():
         time.sleep(1)
 
-def depiler(pile, pile_deleted, pile_catchup, pile_medias, mongoconf, locale, exit_event, debug=False):
-    db = MongoClient(mongoconf['host'], mongoconf['port'])[mongoconf['db']]
-    coll = db['tweets']
-    while not exit_event.is_set() or not pile.empty() or not pile_deleted.empty():
-        while not pile_deleted.empty():
-            todelete = pile_deleted.get()
-            coll.update({'_id': todelete}, {'$set': {'deleted': True}}, upsert=True)
 
-        todo = []
-        while not pile.empty():
-            todo.append(pile.get())
-        stored = 0
-        for t in prepare_tweets(todo, locale):
-            if pile_medias and t["medias"]:
-                pile_medias.put(t)
-            if pile_catchup and t["in_reply_to_status_id_str"]:
-                if not coll.find_one({"_id": t["in_reply_to_status_id_str"]}):
-                    pile_catchup.put(t["in_reply_to_status_id_str"])
-            tid = coll.update({'_id': t['_id']}, {'$set': t}, upsert=True)
-            stored += 1
-        if debug and stored:
-            log("DEBUG", "Saved %s tweets in MongoDB" % stored)
-        breakable_sleep(2, exit_event)
-    log("INFO", "FINISHED depiler")
+def depiler(pile, pile_deleted, pile_catchup, pile_medias, mongoconf, locale, exit_event, esconf, debug=False, database="mongodb"):
+    if database == "mongodb":
+        db = MongoClient(mongoconf['host'], mongoconf['port'])[mongoconf['db']]
+        coll = db['tweets']
+        while not exit_event.is_set() or not pile.empty() or not pile_deleted.empty():
+            while not pile_deleted.empty():
+                todelete = pile_deleted.get()
+                coll.update({'_id': todelete}, {'$set': {'deleted': True}}, upsert=True)
+
+            todo = []
+            while not pile.empty():
+                todo.append(pile.get())
+            stored = 0
+            for t in prepare_tweets(todo, locale):
+                if pile_medias and t["medias"]:
+                    pile_medias.put(t)
+                if pile_catchup and t["in_reply_to_status_id_str"]:
+                    if not coll.find_one({"_id": t["in_reply_to_status_id_str"]}):
+                        pile_catchup.put(t["in_reply_to_status_id_str"])
+                tid = coll.update({'_id': t['_id']}, {'$set': t}, upsert=True)
+                stored += 1
+            if debug and stored:
+                log("DEBUG", "Saved %s tweets in MongoDB" % stored)
+            breakable_sleep(2, exit_event)
+        log("INFO", "FINISHED depiler")
+    elif database == "elasticsearch":
+        es = Elasticsearch(esconf['host'] + ':' + esconf['port'])
+        if not es.indices.exists(index=esconf['index']):
+            try:
+                with open(os.path.dirname(os.path.realpath(__file__)) + '/database/elasticsearch_mapping.json') as mappingfile:
+                    mapping = json.loads(mappingfile.read())
+                    es.indices.create(index=esconf['index'], body=mapping)
+            except Exception as e:
+                log('ERROR', 'Could not open elasticsearch_mapping.json: %s %s' % (type(e), e))
+                sys.exit(1)
 
 def download_media(tweet, media_id, media_url, medias_dir="medias"):
     subdir = os.path.join(medias_dir, media_id.split('_')[0][:-15])
