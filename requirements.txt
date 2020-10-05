@@ -16,5 +16,6 @@ future
 elasticsearch >= 6.0.0, < 7.0.0
 ural
 minet >= 0.20.2
+click
 # commented since code piece was integrated
 #urlsresolver
