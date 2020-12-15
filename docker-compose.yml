@@ -1,0 +1,18 @@
+version: "3.4"
+
+services:
+  gazouilloire:
+    image: gazouilloire
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    depends_on:
+      - db
+    volumes:
+      - type: bind
+        source: ./config.json
+        target: /usr/src/app/config.json
+  db:
+    image: mongo:latest
+    ports:
+      - 27017:27017
