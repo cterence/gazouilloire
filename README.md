@@ -103,6 +103,19 @@ bin/export_csv.py
 bin/export_all_text.py
 ```
 
+## Docker + Compose configuration 
+
+- Install Docker and Compose
+
+- Run `docker-compose up`
+
+- To access the data, you may use the `mongo` and `mongoexport` executables ([install mongo](https://www.mongodb.com/try/download/community), [install mongoexport](https://docs.mongodb.com/database-tools/mongoexport/#installation))
+
+```bash
+# A sample mongoexport command to export data to CSV
+mongoexport --collection=tweets --db=tweets --type=csv --fields=collected_at_timestamp,created_at,favorite_count,hashtags,in_reply_to_sreen_name,in_reply_to_status_id,in_reply_to_user_id_str,links,medias,mentions_ids,mentions_names,quoted_id,quoted_timestamp,quoted_user,quoted_user_id,retweet_count,retweet_id,retweet_timestamp,retweet_user,retweet_user_id,source,text,timestamp,truncated,url,user_created_at,user_created_at_timestamp,user_description,user_favourites,user_followers,user_friends,user_id_str,user_location,user_name,user_screen_name,user_url,user_verified,possibly_sensitive,reply_count --out=tweets.csv
+```
+
 ## Publications using Gazouilloire
 
 * CASTALDO Maria, VENTURINI Tommaso, FRASCA Paolo, GARGIULO Floriana, "[The Rhythms of the Night: increase in online night activity and emotional resilience during the Covid-19 lockdown](https://arxiv.org/pdf/2007.09353.pdf)"  (2020). arXiv preprint arXiv:2007.09353.
